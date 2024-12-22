@@ -1,4 +1,5 @@
 #light 
+#nowarn "40"
 
 //---------------------------------------------------------------------------------------------
 //Simple list, string, array utility functions 
@@ -111,17 +112,16 @@ let (!!) input = S2PB  input
 ///input buffer and the remainder of the input buffer. 
 //I'm using an AP function rather than the native hd :: tl syntax so I can later change
 //my input buffer type without affecting all the code in my parser
-let (|NC|_|) input = 
-    match input with 
+let (|NC|_|) = function 
     | i :: input -> Some(i, input)
     | [] -> None
 
-///The TOKEN AP function checks the top of the input buffer for the 
+///The TK AP function checks the top of the input buffer for the 
 ///specified token string, returning the remaining input buffer if the token
 ///is found
 //Like NC, one of the main purposes of this function is to abstract the input
 //buffer type so I can change it without affecting the rest of the parsing code
-let (|TOKEN|_|) token  input =
+let (|TK|_|) token  input =
     let rec ParseToken token input =
         match token,(|NC|_|) input with
         | t :: [], Some(i, input) when i = t -> Some(input)
@@ -129,41 +129,67 @@ let (|TOKEN|_|) token  input =
         | _ -> None
     ParseToken (List.of_seq token) input
 
+//FP == Failure Predicate
+let (|FP|_|) f input =
+    match f input with
+    | Some(_) -> None
+    | None -> Some(input)
+
+//SP == Success Predicate
+let (|SP|_|) f input =
+    match f input with
+    | Some(_) -> Some(input)
+    | None -> None
+
+//ZOM == Zero Or More    
+let rec (|ZOM|) f input = 
+    match f input with 
+    | Some(i,input) -> 
+        let j,input = (|ZOM|) f input
+        (i :: j, input)
+    | None -> [], input
+
+//OOM == One Or More        
+let (|OOM|_|) f input = 
+    match (|ZOM|) f input with
+    | [], input -> None
+    | v, input -> Some(v,input)
+    
+//ZOO == Zero Or One
+let (|ZOO|) f input = 
+    match f input with 
+    | Some(i,input) -> Some(i), input
+    | None -> None,input
+
 //---------------------------------------------------------------------------------------------
 //PEG Recursive Descent Parser
             
 ///EndOfFile <- !.
-let (|EndOfFile|_|) input = 
-    match input with
+let (|EndOfFile|_|) = function 
     | NC (_) -> None
     | _ -> Some()
 
 ///EndOfLine <- '\r\n' / '\n' / '\r'    
-let (|EndOfLine|_|) input = 
-    match input with
-    | TOKEN "\r\n" (input) -> Some(input)
-    | TOKEN "\n" (input) -> Some(input)
-    | TOKEN "\r" (input) -> Some(input)
+let (|EndOfLine|_|) = function
+    | TK "\r\n" (input) -> Some(input)
+    | TK "\n" (input) -> Some(input)
+    | TK "\r" (input) -> Some(input)
     | _ -> None
 
 ///Space <- ' ' / '\t' / EndOfLine
-let (|Space|_|) input = 
-    match input with
-    | TOKEN " " (input) -> Some(input)
-    | TOKEN "\t" (input) -> Some(input)
+let (|Space|_|) = function
+    | TK " " (input) -> Some(input)
+    | TK "\t" (input) -> Some(input)
     | EndOfLine (input) -> Some(input)
     | _ -> None
 
-///Comment <- '#' ((!EndOfLine / !EndOfFile) .)* EndOfLine?
-let (|Comment|_|) input = 
-    let rec (|CommentContent|_|) input = 
-        match input with
-        | EndOfLine (input) -> Some(input)
-        | EndOfFile -> Some(input)
-        | NC (_,input) -> (|CommentContent|_|) input
+///Comment <- ’#’ (!EndOfLine .)* EndOfLine
+let (|Comment|_|) = 
+    let NotEOL = function
+        | FP (|EndOfLine|_|) (NC (c, input)) -> Some(c, input)
         | _ -> None
-    match input with
-    | TOKEN "#" (CommentContent (input)) -> Some(input)
+    function 
+    | TK "#" (ZOM NotEOL (cl, EndOfLine (input))) -> Some(input) 
     | _ -> None
 
 ///Spacing <- (Space / Comment)*
@@ -176,63 +202,53 @@ let rec (|Spacing|) input =
     | _ -> input
     
 ///DOT <- '.' Spacing
-let (|DOT|_|) input =
-    match input with
-    | TOKEN "." (Spacing(input)) -> Some(input)
+let (|DOT|_|) = function
+    | TK "." (Spacing(input)) -> Some(input)
     | _ -> None
     
 ///CLOSE <- ')' Spacing
-let (|CLOSE|_|) input =
-    match input with
-    | TOKEN ")" (Spacing(input)) -> Some(input)
+let (|CLOSE|_|) = function
+    | TK ")" (Spacing(input)) -> Some(input)
     | _ -> None
     
 ///OPEN <- '(' Spacing
-let (|OPEN|_|) input =
-    match input with
-    | TOKEN "(" (Spacing(input)) -> Some(input)
+let (|OPEN|_|) = function
+    | TK "(" (Spacing(input)) -> Some(input)
     | _ -> None
     
 ///PLUS <- '+' Spacing
-let (|PLUS|_|) input =
-    match input with
-    | TOKEN "+" (Spacing(input)) -> Some(input)
+let (|PLUS|_|) = function
+    | TK "+" (Spacing(input)) -> Some(input)
     | _ -> None
 
 ///STAR <- '*' Spacing
-let (|STAR|_|) input =
-    match input with
-    | TOKEN "*" (Spacing(input)) -> Some(input)
+let (|STAR|_|) = function
+    | TK "*" (Spacing(input)) -> Some(input)
     | _ -> None
     
 ///QUESTION <- '?' Spacing
-let (|QUESTION|_|) input =
-    match input with
-    | TOKEN "?" (Spacing(input)) -> Some(input)
+let (|QUESTION|_|) = function
+    | TK "?" (Spacing(input)) -> Some(input)
     | _ -> None
     
 ///NOT <- '!' Spacing
-let (|NOT|_|) input =
-    match input with
-    | TOKEN "!" (Spacing(input)) -> Some(input)
+let (|NOT|_|) = function
+    | TK "!" (Spacing(input)) -> Some(input)
     | _ -> None
 
 ///AND <- '&' Spacing    
-let (|AND|_|) input =
-    match input with
-    | TOKEN "&" (Spacing(input)) -> Some(input)
+let (|AND|_|) = function
+    | TK "&" (Spacing(input)) -> Some(input)
     | _ -> None
 
 ///SLASH <- '/' Spacing    
-let (|SLASH|_|) input =
-    match input with
-    | TOKEN "/" (Spacing(input)) -> Some(input)
+let (|SLASH|_|) = function
+    | TK "/" (Spacing(input)) -> Some(input)
     | _ -> None
 
 ///LEFTARROW <- '<-' Spacing    
-let (|LEFTARROW|_|) input =
-    match input with
-    | TOKEN "<-" (Spacing(input)) -> Some(input)
+let (|LEFTARROW|_|) = function
+    | TK "<-" (Spacing(input)) -> Some(input)
     | _ -> None
 
 ///Char <- '\\' [nrt'"\[\]\\]
@@ -240,125 +256,93 @@ let (|LEFTARROW|_|) input =
 /// / '\\' [0-7][0-7]
 /// / '\\' [0-7]
 /// / !'\\' .    
-let (|Char|_|) input = 
+let (|Char|_|) = 
        
     let (|InRange|_|) upper input =
         let i2c value = Char.chr(Char.code '0' + value)
         let c2i value = Char.code value - Char.code '0'
-        
         match input with
         | NC (c, input) when (i2c 0) <= c && c <= (i2c upper) ->
             Some((c2i c), input)
         | _ -> None
         
-    match input with
-    | TOKEN @"\" (NC(c, input)) when List.exists (fun x -> x=c) ['n';'r';'t';'\'';'"';'[';']';'\\'] -> 
+    function
+    | TK @"\" (NC(c, input)) when List.exists (fun x -> x=c) ['n';'r';'t';'\'';'"';'[';']';'\\'] -> 
         match c with
         | 'n' -> Some('\n', input)
         | 'r' -> Some('\r', input)
         | 't' -> Some('\t', input)
         | _ -> Some(c, input)
-    | TOKEN @"\" (InRange 2 (i1, InRange 7 (i2, InRange 7 (i3, input)))) ->
+    | TK @"\" (InRange 2 (i1, InRange 7 (i2, InRange 7 (i3, input)))) ->
         Some(Char.chr (i1 * 64 + i2 * 8 + i3), input)
-    | TOKEN @"\" (InRange 7 (i1, InRange 7 (i2, input))) ->
+    | TK @"\" (InRange 7 (i1, InRange 7 (i2, input))) ->
         Some(Char.chr (i1 * 8 + i2), input)
-    | TOKEN @"\" (InRange 7 (i1, input)) ->
+    | TK @"\" (InRange 7 (i1, input)) ->
         Some(Char.chr (i1), input)
-
     | NC(c, input) when c <> '\\' -> Some(c, input)
     | _ -> None  
 
 ///Range <- Char '-' Char / Char
-let (|Range|_|) input =
-    match input with
-    | Char (c1, TOKEN "-" (Char (c2, input))) -> 
+let (|Range|_|) = function
+    | Char (c1, TK "-" (Char (c2, input))) -> 
         Some(Range.Dual (c1, c2), input)
     | Char (c1, input) -> 
         Some(Range.Single(c1), input) 
     | _ -> None
 
 ///Class <- '[' (!']' Range)* ']' Spacing    
-let (|Class|_|) input =
-
-    let rec (|Ranges|_|) ranges input = 
-        match input with
-        | TOKEN "]" (_) -> Some(ranges, input)
-        | Range(range, input) -> (|Ranges|_|) (ranges @ [range]) input
+let (|Class|_|) =
+    let Ranges = function
+        | FP ((|TK|_|) "]") (Range (range, input)) -> Some(range,input)
         | _ -> None
-    
-    match input with
-    | TOKEN "[" (Ranges [] (ranges, TOKEN "]" (Spacing(input)))) -> Some(ranges, input)
+    function 
+    | TK "[" (ZOM Ranges (ranges, TK "]" (Spacing(input)))) -> Some(ranges, input)
     | _ -> None
 
 ///Literal <- ['] (!['] Char)* ['] Spacing
 ///         / ["] (!["] Char)* ["] Spacing
-let (|Literal|_|) input =
-
-    let rec (|LitChars|_|) delimiter chars input =
+let (|Literal|_|) = 
+    let Chars delimiter input =
         match input with
-        | TOKEN delimiter (_) -> Some(L2S chars, input)
-        | Char (c, input) -> 
-            (|LitChars|_|) delimiter (chars @ [c]) input
+        | FP ((|TK|_|) delimiter) (Char (c,input)) -> Some(c,input)
         | _ -> None
-    
-    match input with
-    | TOKEN "'"  (LitChars "'"  [] (lit, TOKEN "'"  (Spacing(input)))) -> 
-        Some(lit, input)
-    | TOKEN "\"" (LitChars "\"" [] (lit, TOKEN "\"" (Spacing(input)))) -> 
-        Some(lit, input)
+    function 
+    | TK "'"  (ZOM (Chars "'")  (chars, TK "'"  (Spacing(input)))) -> Some(L2S chars, input)
+    | TK "\"" (ZOM (Chars "\"") (chars, TK "\"" (Spacing(input)))) -> Some(L2S chars, input)
     | _ -> None
 
 ///Identifier <- [a-zA-Z_] [a-zA-Z0-9_]* Spacing    
 //I rewrote this to make IdentStart and IdentCont local to the Identifier function. I did this
 //Since they aren't accessed outside of the identifier function anyway
-let (|Identifier|_|) input = 
-       
-    let (|IdentStart|_|) input =
-        match input with
+let (|Identifier|_|) = 
+    let (|IdentStart|_|) = function
         | NC (c, input) when ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || (c = '_') -> 
             Some(c, input)
         | _ -> None
-    let rec (|IdentCont|_|) chars input = 
-        match input with
-        | IdentStart (c, input) -> 
-            (|IdentCont|_|) (chars @ [c]) input
-        | NC (c, input) when ('0' <= c && c <= '9') -> 
-            (|IdentCont|_|) (chars @ [c]) input
-        | _ -> Some(chars, input)
-        
-    match input with
-    | IdentStart (c, IdentCont [] (chars, Spacing (input))) -> 
-        Some(L2S (c :: chars), input)
+    let IdentCont = function
+        | IdentStart (c, input) -> Some(c,input)
+        | NC (c, input) when ('0' <= c && c <= '9') -> Some(c,input)
+        | _ -> None
+    function 
+    | IdentStart (c, ZOM IdentCont (chars, Spacing (input))) -> Some(L2S (c :: chars), input)
     | _ -> None
 
 ///Primary <- Identifier !LEFTARROW
 ///         / OPEN Expression CLOSE
 ///         / Literal / Class / DOT
-let rec (|Primary|_|) input =
-
-    let (|NotLEFTARROW|_|) input =
-        match input with
-        | LEFTARROW (_) -> None
-        | _ -> Some(input)
-
-    match input with
-    | Identifier (id, NotLEFTARROW (input)) -> 
-        Some(Primary.Identifier(id), input)
-    | OPEN ( Expression (exp, CLOSE (input))) -> 
-        Some(Primary.Expression(exp), input)
-    | Literal (lit, input) -> 
-        Some(Primary.Literal(lit), input)
-    | Class (cls, input) -> 
-        Some(Primary.Class(cls), input)
-    | DOT (input) -> 
-        Some(Primary.Dot, input)
+let rec (|Primary|_|) = function
+    | Identifier (id, FP (|LEFTARROW|_|) (input)) -> Some(Primary.Identifier(id), input)
+    | OPEN ( Expression (exp, CLOSE (input))) -> Some(Primary.Expression(exp), input)
+    | Literal (lit, input) -> Some(Primary.Literal(lit), input)
+    | Class (cls, input) -> Some(Primary.Class(cls), input)
+    | DOT (input) -> Some(Primary.Dot, input)
     | _ -> None
     
 ///SequenceItem <- (AND / NOT)? Primary (QUESTION / STAR / PLUS)?
 //changed from the Original Grammar: 
 //    Prefix <- (AND / NOT)? Suffix
 //    Suffix <- Primary (QUESTION / STAR / PLUS)?
-and (|SequenceItem|_|) input =
+and (|SequenceItem|_|) =
     let (|Suffix|) input = 
         match input with
         | QUESTION(input) -> Some(Suffix.Question), input
@@ -370,45 +354,29 @@ and (|SequenceItem|_|) input =
         | AND(input) -> Some(Prefix.And),input
         | NOT(input) -> Some(Prefix.Not),input
         | _ -> None,input
-    match input with
+    function
     | Prefix (pfix, Primary(primary, Suffix(sfix, input))) -> 
         Some({primaryItem=primary;itemPrefix=pfix;itemSuffix=sfix}, input)
     | _ -> None
 
 ///Sequence <- SequenceItem*
-and (|Sequence|) input =
-    let rec ParseSequence items input =
-        match input with
-        | SequenceItem (item, input) -> ParseSequence (items @ [item]) input
-        | _ -> items, input
-    ParseSequence [] input
+and (|Sequence|) = function ZOM (|SequenceItem|_|) (items, input) -> items, input
 
 ///Expression <- Sequence (SLASH Sequence)*
-and (|Expression|) input =
-    let rec ParseExpression seqList input =
-        match input with
-        | SLASH (Sequence (sq,input)) -> ParseExpression (seqList @ [sq]) input
-        | _ -> seqList,input
-    match input with
-    | Sequence (sq, input) -> ParseExpression [sq] input
+and (|Expression|) = 
+    let SlashSequence = function
+        | SLASH (Sequence (sq, input)) -> Some(sq,input)
+        | _ -> None
+    function 
+    | Sequence (sq, ZOM SlashSequence (sql, input)) -> sq::sql, input
     
 ///Definition <- Identifier LEFTARROW Expression
-let (|Definition|_|) input =
-    match input with
+let (|Definition|_|) = function
     | Identifier (id, LEFTARROW (Expression (ex, input))) -> 
         Some({name=id;exp=ex}, input) 
     | _ -> None
-
+    
 ///Grammar <- Spacing Definition+ EndOfFile
-let (|Grammar|_|) input =
-    let rec ParseDefinitions dl input =
-        match input with
-        | Definition (d, input) -> ParseDefinitions (dl @ [d]) input
-        | _ -> Some(dl, input)
-    let (|OneOrMoreDefintions|_|) input = 
-        match input with
-        | Definition (d, input) -> ParseDefinitions [d] input
-        | _ -> None
-    match input with
-    | Spacing (OneOrMoreDefintions (dl, EndOfFile)) -> Some(List.to_array dl)
+let (|Grammar|_|) = function
+    | Spacing (OOM (|Definition|_|) (dl, EndOfFile)) -> Some(List.to_array dl)
     | _ -> None

@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
 Project("{94D665CA-D915-4DE1-AA53-913450A1AE2D}") = "PegParser", "PegParser\PegParser.fsharpp", "{FF796F07-7F88-4EDA-AB6D-5119423EA57F}"
 EndProject
 Project("{94D665CA-D915-4DE1-AA53-913450A1AE2D}") = "PegParser.Tests", "PegParser.Tests\PegParser.Tests.fsharpp", "{B3180997-F09E-4548-8C04-6199F6F1C592}"
