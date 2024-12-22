@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{94D665CA-D915-4DE1-AA53-913450A1AE2D}") = "PegParser", "PegParser\PegParser.fsharpp", "{FF796F07-7F88-4EDA-AB6D-5119423EA57F}"
+EndProject
+Project("{94D665CA-D915-4DE1-AA53-913450A1AE2D}") = "PegParser.Tests", "PegParser.Tests\PegParser.Tests.fsharpp", "{B3180997-F09E-4548-8C04-6199F6F1C592}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F} = {FF796F07-7F88-4EDA-AB6D-5119423EA57F}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
+		Debug|Win32 = Debug|Win32
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Debug|Win32.Build.0 = Debug|Win32
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Release|Any CPU.ActiveCfg = Release|Win32
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Release|Win32.ActiveCfg = Release|Win32
+		{FF796F07-7F88-4EDA-AB6D-5119423EA57F}.Release|Win32.Build.0 = Release|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Debug|Win32.Build.0 = Debug|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Release|Any CPU.ActiveCfg = Release|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Release|Win32.ActiveCfg = Release|Win32
+		{B3180997-F09E-4548-8C04-6199F6F1C592}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
